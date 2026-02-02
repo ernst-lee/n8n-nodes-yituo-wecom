@@ -19,6 +19,6 @@ export const renameFileDescription: INodeProperties[] = [
 		required: true,
 		displayOptions: { show: showOnly },
 		default: '',
-		description: '新的文件或文件夹名称',
+		description: '新的文件或文件夹名称（注意：文件名最多填255个字符，英文算1个，汉字算2个）',
 	},
 ];

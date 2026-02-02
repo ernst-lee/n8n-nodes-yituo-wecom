@@ -7,7 +7,6 @@ export const getFileListDescription: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '',
-		placeholder: 'space_id_123',
 		description: '微盘空间的ID',
 		displayOptions: {
 			show: {
@@ -21,8 +20,7 @@ export const getFileListDescription: INodeProperties[] = [
 		name: 'fatherId',
 		type: 'string',
 		default: '',
-		placeholder: 'folder_id_123',
-		description: '父文件夹的ID，不填则获取根目录文件列表',
+		description: '父文件夹的ID，根目录时为空间spaceid',
 		displayOptions: {
 			show: {
 				resource: ['wefile'],
@@ -34,27 +32,32 @@ export const getFileListDescription: INodeProperties[] = [
 		displayName: '排序方式',
 		name: 'sortType',
 		type: 'options',
-		default: 0,
+		required: true,
+		default: 1,
 		options: [
 			{
-				name: '默认排序',
-				value: 0,
-			},
-			{
-				name: '文件名升序',
+				name: '名字升序',
 				value: 1,
 			},
 			{
-				name: '文件名降序',
+				name: '名字降序',
 				value: 2,
 			},
 			{
-				name: '修改时间升序',
+				name: '大小升序',
 				value: 3,
 			},
 			{
-				name: '修改时间降序',
+				name: '大小降序',
 				value: 4,
+			},
+			{
+				name: '修改时间升序',
+				value: 5,
+			},
+			{
+				name: '修改时间降序',
+				value: 6,
 			},
 		],
 		description: '文件列表的排序方式',
@@ -69,8 +72,9 @@ export const getFileListDescription: INodeProperties[] = [
 		displayName: '起始位置',
 		name: 'start',
 		type: 'number',
+		required: true,
 		default: 0,
-		description: '分页起始位置',
+		description: '首次填0，后续填上一次请求返回的next_start',
 		displayOptions: {
 			show: {
 				resource: ['wefile'],
@@ -82,11 +86,13 @@ export const getFileListDescription: INodeProperties[] = [
 		displayName: '返回数量',
 		name: 'limit',
 		type: 'number',
+		required: true,
 		typeOptions: {
 			minValue: 1,
+			maxValue: 1000,
 		},
-		default: 50,
-		description: 'Max number of results to return',
+		default: 100,
+		description: '分批拉取最大文件数，不超过1000',
 		displayOptions: {
 			show: {
 				resource: ['wefile'],

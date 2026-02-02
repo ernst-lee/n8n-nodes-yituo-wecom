@@ -2,11 +2,9 @@ import type { INodeProperties } from 'n8n-workflow';
 
 const showOnly = { resource: ['wefile'], operation: ['addFileMembers'] };
 
+// 权限选项（根据官方文档）
 const authOptions = [
-	{ name: '可下载', value: 1, description: '可以下载文件' },
-	{ name: '可预览', value: 2, description: '只能预览文件' },
-	{ name: '可编辑', value: 3, description: '可以编辑文件' },
-	{ name: '可管理', value: 4, description: '管理员权限' },
+	{ name: '仅下载', value: 1, description: '只能下载文件（仅浏览）' },
 ];
 
 export const addFileMembersDescription: INodeProperties[] = [
@@ -17,7 +15,7 @@ export const addFileMembersDescription: INodeProperties[] = [
 		required: true,
 		displayOptions: { show: showOnly },
 		default: '',
-		description: '文件或文件夹的ID',
+		description: '文件或文件夹的ID<a href="https://developer.work.weixin.qq.com/document/path/93658" target="_blank">更多信息</a>',
 	},
 	{
 		displayName: '成员列表',
@@ -28,40 +26,48 @@ export const addFileMembersDescription: INodeProperties[] = [
 		default: {},
 		placeholder: '添加成员',
 		typeOptions: { multipleValues: true },
-		description: '要添加的成员或部门',
+		description: '要添加的成员或部门<a href="https://developer.work.weixin.qq.com/document/path/93658" target="_blank">更多信息</a>',
 		options: [
 			{
 				displayName: '成员',
 				name: 'members',
 				values: [
 					{
-						displayName: '类型',
+						displayName: '成员类型',
 						name: 'type',
 						type: 'options',
 						default: 1,
 						options: [
-							{ name: '成员', value: 1, description: '企业成员' },
+							{ name: '个人', value: 1, description: '企业成员' },
 							{ name: '部门', value: 2, description: '企业部门' },
 						],
-						description: '成员类型',
 					},
 					{
-						displayName: '成员UserID',
+						displayName: '成员 Name or ID',
 						name: 'userid',
-						type: 'string',
+						type: 'options',
+						required: true,
+						typeOptions: {
+							loadOptionsMethod: 'getAllUsers',
+						},
 						default: '',
 						displayOptions: { show: { type: [1] } },
-						description: '企业成员的UserID',
+						description: '成员的userid',
 					},
 					{
-						displayName: '部门ID',
+						displayName: '部门 Name or ID',
 						name: 'departmentid',
-						type: 'number',
-						default: 0,
+						type: 'options',
+						required: true,
+						typeOptions: {
+							loadOptionsMethod: 'getDepartments',
+						},
+						default: '',
 						displayOptions: { show: { type: [2] } },
+						description: '部门的departmentid',
 					},
 					{
-						displayName: '权限',
+						displayName: '成员权限',
 						name: 'auth',
 						type: 'options',
 						default: 1,

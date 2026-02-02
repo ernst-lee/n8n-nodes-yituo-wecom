@@ -6,9 +6,12 @@ function buildAuthInfo(members: IDataObject[]): IDataObject[] {
 	return members.map((member) => {
 		const info: IDataObject = { type: member.type };
 		if (member.type === 1) {
+			// 个人类型，userid 已经是字符串
 			info.userid = member.userid;
 		} else if (member.type === 2) {
-			info.departmentid = member.departmentid;
+			// 部门类型，departmentid 可能是字符串（从下拉列表获取）或数字
+			const deptId = member.departmentid;
+			info.departmentid = typeof deptId === 'string' ? parseInt(deptId, 10) : deptId;
 		}
 		if (member.auth !== undefined) {
 			info.auth = member.auth;
@@ -31,24 +34,17 @@ export async function executeWefile(
 			// 空间管理操作
 			if (operation === 'createSpace') {
 				const spaceName = this.getNodeParameter('spaceName', i) as string;
-				const authInfo = this.getNodeParameter('authInfo', i, {}) as IDataObject;
+				const authInfoCollection = this.getNodeParameter('authInfoCollection', i, {}) as IDataObject;
+				const spaceSubType = this.getNodeParameter('spaceSubType', i, 0) as number;
 
-				const body: IDataObject = { space_name: spaceName };
+				const body: IDataObject = {
+					space_name: spaceName,
+					space_sub_type: spaceSubType,
+				};
 
-				// 处理权限信息
-				if (authInfo.auth) {
-					const auth = authInfo.auth as IDataObject;
-					const authData: IDataObject = {};
-					if (auth.userid) {
-						authData.userid = (auth.userid as string).split(',').map((id) => id.trim()).filter((id) => id);
-					}
-					if (auth.departmentid) {
-						authData.departmentid = (auth.departmentid as string).split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id));
-					}
-					if (auth.auth !== undefined) {
-						authData.auth = auth.auth;
-					}
-					body.auth_info = authData;
+				// 处理权限信息（使用成员数组）
+				if (authInfoCollection.members && Array.isArray(authInfoCollection.members)) {
+					body.auth_info = buildAuthInfo(authInfoCollection.members as IDataObject[]);
 				}
 
 				responseData = await weComApiRequest.call(
@@ -151,21 +147,18 @@ export async function executeWefile(
 			// 文件管理操作
 			else if (operation === 'getFileList') {
 				const spaceId = this.getNodeParameter('spaceId', i) as string;
-				const fatherId = this.getNodeParameter('fatherId', i, '') as string;
-				const sortType = this.getNodeParameter('sortType', i, 0) as number;
-				const start = this.getNodeParameter('start', i, 0) as number;
-				const limit = this.getNodeParameter('limit', i, 50) as number;
+				const fatherId = this.getNodeParameter('fatherId', i) as string;
+				const sortType = this.getNodeParameter('sortType', i) as number;
+				const start = this.getNodeParameter('start', i) as number;
+				const limit = this.getNodeParameter('limit', i) as number;
 
 				const body: IDataObject = {
 					spaceid: spaceId,
+					fatherid: fatherId || spaceId,
 					sort_type: sortType,
 					start,
 					limit,
 				};
-
-				if (fatherId) {
-					body.fatherid = fatherId;
-				}
 
 				responseData = await weComApiRequest.call(
 					this,
@@ -174,56 +167,90 @@ export async function executeWefile(
 					body,
 				);
 			} else if (operation === 'uploadFile') {
-				const spaceId = this.getNodeParameter('spaceId', i) as string;
-				const fatherId = this.getNodeParameter('fatherId', i, '') as string;
+				const locationMethod = this.getNodeParameter('locationMethod', i) as string;
 				const fileName = this.getNodeParameter('fileName', i) as string;
-				const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+				const contentMethod = this.getNodeParameter('contentMethod', i) as string;
 
-				const dataBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
+				let base64Content = '';
 
-				const formData = {
-					spaceid: spaceId,
-					fatherid: fatherId || '',
+				// 根据内容方式获取 Base64 编码的文件内容
+				if (contentMethod === 'base64') {
+					// 直接使用用户提供的 Base64 内容
+					base64Content = this.getNodeParameter('base64Content', i) as string;
+				} else {
+					// 从二进制数据属性获取并转换为 Base64
+					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+					const dataBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
+					base64Content = dataBuffer.toString('base64');
+				}
+
+				// 验证文件大小（10MB = 10 * 1024 * 1024 bytes）
+				const bufferSize = Buffer.from(base64Content, 'base64').length;
+				const maxFileSize = 10 * 1024 * 1024;
+				if (bufferSize > maxFileSize) {
+					throw new Error(
+						`文件大小超过限制（最大 10MB）。当前文件大小: ${(bufferSize / 1024 / 1024).toFixed(2)}MB`,
+					);
+				}
+
+				const body: IDataObject = {
 					file_name: fileName,
-					file: {
-						value: dataBuffer,
-						options: {
-							filename: fileName,
-							contentType: 'application/octet-stream',
-						},
-					},
+					file_base64_content: base64Content,
 				};
+
+				// 根据位置选择方式设置参数
+				if (locationMethod === 'ticket') {
+					// 使用 selected_ticket 方式
+					const selectedTicket = this.getNodeParameter('selectedTicket', i) as string;
+					body.selected_ticket = selectedTicket;
+				} else {
+					// 使用 spaceid/fatherid 方式
+					const spaceId = this.getNodeParameter('spaceId', i) as string;
+					const fatherId = this.getNodeParameter('fatherId', i, '') as string;
+
+					body.spaceid = spaceId;
+					body.fatherid = fatherId || spaceId; // 如果未指定 fatherId，使用 spaceId
+				}
 
 				responseData = await weComApiRequest.call(
 					this,
 					'POST',
 					'/cgi-bin/wedrive/file_upload',
-					formData,
-					{},
-					{ multipart: true },
+					body,
 				);
 			} else if (operation === 'downloadFile') {
-				const fileId = this.getNodeParameter('fileId', i) as string;
+				const downloadMethod = this.getNodeParameter('downloadMethod', i) as string;
+				const body: IDataObject = {};
+
+				// 根据下载方式设置参数
+				if (downloadMethod === 'ticket') {
+					// 使用 selected_ticket 方式
+					const selectedTicket = this.getNodeParameter('selectedTicket', i) as string;
+					body.selected_ticket = selectedTicket;
+				} else {
+					// 使用 fileid 方式
+					const fileId = this.getNodeParameter('fileId', i) as string;
+					body.fileid = fileId;
+				}
 
 				responseData = await weComApiRequest.call(
 					this,
 					'POST',
 					'/cgi-bin/wedrive/file_download',
-					{ fileid: fileId },
+					body,
 				);
 			} else if (operation === 'createFolder') {
 				const spaceId = this.getNodeParameter('spaceId', i) as string;
-				const folderName = this.getNodeParameter('folderName', i) as string;
 				const fatherId = this.getNodeParameter('fatherId', i, '') as string;
+				const fileType = this.getNodeParameter('fileType', i) as number;
+				const fileName = this.getNodeParameter('fileName', i) as string;
 
 				const body: IDataObject = {
 					spaceid: spaceId,
-					file_name: folderName,
+					fatherid: fatherId || spaceId,
+					file_type: fileType,
+					file_name: fileName,
 				};
-
-				if (fatherId) {
-					body.fatherid = fatherId;
-				}
 
 				responseData = await weComApiRequest.call(
 					this,
@@ -310,14 +337,24 @@ export async function executeWefile(
 				);
 			} else if (operation === 'fileShareSettings') {
 				const fileId = this.getNodeParameter('fileId', i) as string;
-				const shareScope = this.getNodeParameter('shareScope', i) as number;
 				const authScope = this.getNodeParameter('authScope', i) as number;
+				const auth = this.getNodeParameter('auth', i, 0) as number;
+
+				const body: IDataObject = {
+					fileid: fileId,
+					auth_scope: authScope,
+				};
+
+				// 只有当auth有值时才添加到body（保持原有权限状态）
+				if (auth !== 0) {
+					body.auth = auth;
+				}
 
 				responseData = await weComApiRequest.call(
 					this,
 					'POST',
 					'/cgi-bin/wedrive/file_setting',
-					{ fileid: fileId, share_scope: shareScope, auth_scope: authScope },
+					body,
 				);
 			} else if (operation === 'getFileShareLink') {
 				const fileId = this.getNodeParameter('fileId', i) as string;
@@ -339,55 +376,116 @@ export async function executeWefile(
 				);
 			} else if (operation === 'fileSecuritySettings') {
 				const fileId = this.getNodeParameter('fileId', i) as string;
-				const enableWatermark = this.getNodeParameter('enableWatermark', i, false) as boolean;
-				const addMemberOnlyAdmin = this.getNodeParameter('addMemberOnlyAdmin', i, false) as boolean;
-				const enableShareUrl = this.getNodeParameter('enableShareUrl', i, true) as boolean;
-				const shareUrlNoApprove = this.getNodeParameter('shareUrlNoApprove', i, false) as boolean;
+				const watermarkCollection = this.getNodeParameter('watermarkCollection', i, {}) as IDataObject;
+
+				const body: IDataObject = {
+					fileid: fileId,
+				};
+
+				// 处理水印设置
+				if (watermarkCollection.watermark) {
+					const watermark = watermarkCollection.watermark as IDataObject;
+					const watermarkInfo: IDataObject = {};
+
+					// 只有当字段有值时才添加到watermark对象
+					if (watermark.text !== undefined && watermark.text !== '') {
+						watermarkInfo.text = watermark.text;
+					}
+					if (watermark.marginType !== undefined) {
+						watermarkInfo.margin_type = watermark.marginType;
+					}
+					if (watermark.showVisitorName !== undefined) {
+						watermarkInfo.show_visitor_name = watermark.showVisitorName;
+					}
+					if (watermark.showText !== undefined) {
+						watermarkInfo.show_text = watermark.showText;
+					}
+
+					// 只有当watermarkInfo有内容时才添加到body
+					if (Object.keys(watermarkInfo).length > 0) {
+						body.watermark = watermarkInfo;
+					}
+				}
 
 				responseData = await weComApiRequest.call(
 					this,
 					'POST',
 					'/cgi-bin/wedrive/file_secure_setting',
-					{
-						fileid: fileId,
-						enable_watermark: enableWatermark,
-						add_member_only_admin: addMemberOnlyAdmin,
-						enable_share_url: enableShareUrl,
-						share_url_no_approve: shareUrlNoApprove,
-					},
+					body,
 				);
-			} else if (operation === 'getExternalPaymentList') {
-				// 辅助函数：将dateTime转换为Unix时间戳（秒级）
-				function dateTimeToUnixTimestamp(dateTime: string | number): number {
-					if (typeof dateTime === 'number') {
-						return dateTime;
-					}
-					if (!dateTime || dateTime === '') {
-						return 0;
-					}
-					return Math.floor(new Date(dateTime).getTime() / 1000);
+			} else if (operation === 'assignVipAccounts') {
+				const useridListCollection = this.getNodeParameter('useridList', i, {}) as IDataObject;
+
+				// 提取成员列表
+				let useridList: string[] = [];
+				if (useridListCollection.members && Array.isArray(useridListCollection.members)) {
+					useridList = (useridListCollection.members as IDataObject[]).map((member) => member.userid as string);
 				}
 
-				const beginTime = dateTimeToUnixTimestamp(this.getNodeParameter('beginTime', i) as string | number);
-				const endTime = dateTimeToUnixTimestamp(this.getNodeParameter('endTime', i) as string | number);
-				const payee_userid = this.getNodeParameter('payee_userid', i, '') as string;
-				const cursor = this.getNodeParameter('cursor', i, '') as string;
-				const limit = this.getNodeParameter('limit', i, 1000) as number;
+				// 验证成员数量限制
+				if (useridList.length > 100) {
+					throw new Error(`单次操作最多支持100个成员，当前选择了${useridList.length}个成员`);
+				}
 
 				const body: IDataObject = {
-					begin_time: beginTime,
-					end_time: endTime,
+					userid_list: useridList,
 				};
-
-				if (payee_userid) body.payee_userid = payee_userid;
-				if (cursor) body.cursor = cursor;
-				if (limit) body.limit = limit;
 
 				responseData = await weComApiRequest.call(
 					this,
 					'POST',
-					'/cgi-bin/externalpay/get_bill_list',
+					'/cgi-bin/wedrive/vip/batch_add',
 					body,
+				);
+			} else if (operation === 'revokeVipAccounts') {
+				const useridListCollection = this.getNodeParameter('useridList', i, {}) as IDataObject;
+
+				// 提取成员列表
+				let useridList: string[] = [];
+				if (useridListCollection.members && Array.isArray(useridListCollection.members)) {
+					useridList = (useridListCollection.members as IDataObject[]).map((member) => member.userid as string);
+				}
+
+				// 验证成员数量限制
+				if (useridList.length > 100) {
+					throw new Error(`单次操作最多支持100个成员，当前选择了${useridList.length}个成员`);
+				}
+
+				const body: IDataObject = {
+					userid_list: useridList,
+				};
+
+				responseData = await weComApiRequest.call(
+					this,
+					'POST',
+					'/cgi-bin/wedrive/vip/batch_del',
+					body,
+				);
+			} else if (operation === 'getVipAccountsList') {
+				const cursor = this.getNodeParameter('cursor', i, '') as string;
+				const limit = this.getNodeParameter('limit', i, 100) as number;
+
+				const body: IDataObject = {
+					limit,
+				};
+
+				// 只有当cursor有值时才添加到body
+				if (cursor !== '') {
+					body.cursor = cursor;
+				}
+
+				responseData = await weComApiRequest.call(
+					this,
+					'POST',
+					'/cgi-bin/wedrive/vip/list',
+					body,
+				);
+			} else if (operation === 'getProInfo') {
+				responseData = await weComApiRequest.call(
+					this,
+					'POST',
+					'/cgi-bin/wedrive/mng_pro_info',
+					{},
 				);
 			}
 

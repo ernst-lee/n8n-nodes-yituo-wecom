@@ -20,7 +20,7 @@ export const moveFileDescription: INodeProperties[] = [
 		required: true,
 		displayOptions: { show: showOnly },
 		default: '',
-		description: '目标文件夹的ID',
+		description: '目标文件夹的ID，根目录时为空间spaceid',
 	},
 	{
 		displayName: '同名时替换',
@@ -28,6 +28,6 @@ export const moveFileDescription: INodeProperties[] = [
 		type: 'boolean',
 		displayOptions: { show: showOnly },
 		default: false,
-		description: '目标位置存在同名文件时是否替换',
+		description: '如果目标位置存在同名文件时，true:覆盖同名文件；false:自动重命名（如xxx(1).txt）',
 	},
 ];
