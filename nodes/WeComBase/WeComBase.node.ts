@@ -402,6 +402,35 @@ export class WeComBase implements INodeType {
 					value: user.userid,
 				}));
 			},
+
+			async getAllUsersWithAllOption(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const response = await weComApiRequest.call(
+					this,
+					'GET',
+					'/cgi-bin/user/list',
+					{},
+					{
+						department_id: '1',
+						fetch_child: 1,
+					},
+				);
+				const users = response.userlist as Array<{
+					userid: string;
+					name: string;
+					department?: number[];
+				}>;
+
+				return [
+					{
+						name: '所有人 (@all)',
+						value: '@all',
+					},
+					...users.map((user) => ({
+						name: `${user.name} (${user.userid})`,
+						value: user.userid,
+					})),
+				];
+			},
 		},
 	};
 

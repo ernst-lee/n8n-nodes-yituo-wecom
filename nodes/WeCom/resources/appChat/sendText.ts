@@ -7,7 +7,7 @@ const showOnlyForSendText = {
 
 export const sendTextDescription: INodeProperties[] = [
 	{
-		displayName: '群聊ID',
+		displayName: '群聊 ID',
 		name: 'chatid',
 		type: 'string',
 		displayOptions: {
@@ -17,7 +17,7 @@ export const sendTextDescription: INodeProperties[] = [
 		placeholder: 'mychat001',
 		required: true,
 		description:
-			'群聊的唯一标识。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+			'群聊会话的唯一标识。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
 	},
 	{
 		displayName: '消息内容',
@@ -30,10 +30,24 @@ export const sendTextDescription: INodeProperties[] = [
 			show: showOnlyForSendText,
 		},
 		default: '',
-		placeholder: '请输入消息内容',
+		placeholder: '请输入文本消息内容',
 		required: true,
 		description:
-			'文本消息内容。最长不超过2048个字节。支持换行，换行符请用转义过的\\n。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+			'文本消息内容，最长不超过 2048 字节。支持换行，换行请使用 \\n。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+	},
+	{
+		displayName: '@ 成员 Names or IDs',
+		name: 'mentionedList',
+		type: 'multiOptions',
+		typeOptions: {
+			loadOptionsMethod: 'getAllUsersWithAllOption',
+		},
+		displayOptions: {
+			show: showOnlyForSendText,
+		},
+		default: [],
+		description:
+			'可选。支持从下拉列表选择群成员，也支持切换到表达式后输入 UserID 数组或字符串。下拉列表第一项为“所有人”。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
 	},
 	{
 		displayName: '保密消息',
@@ -44,6 +58,6 @@ export const sendTextDescription: INodeProperties[] = [
 		},
 		default: false,
 		description:
-			'可选。表示是否是保密消息，0表示否，1表示是，默认0。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+			'可选。是否发送为保密消息。开启后消息不可转发、复制等。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
 	},
 ];

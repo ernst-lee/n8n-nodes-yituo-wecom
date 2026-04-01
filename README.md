@@ -321,7 +321,7 @@ npm install n8n-nodes-wecom
 - ✅ [获取群聊会话信息](https://developer.work.weixin.qq.com/document/path/98914)
 - ✅ [修改群聊会话](https://developer.work.weixin.qq.com/document/path/98913)
 - ✅ [发送消息到群聊](https://developer.work.weixin.qq.com/document/path/90248)
-  - 发送文本消息到群聊
+  - 发送文本消息到群聊（支持 `@群成员` / `@所有人`）
   - 发送图片消息到群聊
   - 发送文件消息到群聊
   - 发送 Markdown 消息到群聊
