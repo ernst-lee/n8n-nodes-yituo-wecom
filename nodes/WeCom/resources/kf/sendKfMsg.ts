@@ -360,18 +360,28 @@ export const sendKfMsgDescription: INodeProperties[] = [
 				displayName: '菜单项',
 				values: [
 					{
-						displayName: '回复内容',
+						displayName: '菜单 ID',
 						name: 'reply_content',
 						type: 'string',
 						default: '',
-						description: '点击后自动回复的内容',
-						placeholder: '您选择了选项1',
+						displayOptions: {
+							show: {
+								type: ['click'],
+							},
+						},
+						description: '点击菜单的唯一 ID，建议只使用字母、数字和下划线',
+						placeholder: 'menu_101',
 					},
 					{
 						displayName: '小程序AppID',
 						name: 'appid',
 						type: 'string',
 						default: '',
+						displayOptions: {
+							show: {
+								type: ['miniprogram'],
+							},
+						},
 						description: '小程序的AppID',
 						placeholder: 'wx1234567890abcdef',
 					},
@@ -380,6 +390,11 @@ export const sendKfMsgDescription: INodeProperties[] = [
 						name: 'pagepath',
 						type: 'string',
 						default: '',
+						displayOptions: {
+							show: {
+								type: ['miniprogram'],
+							},
+						},
 						description: '小程序的页面路径',
 						placeholder: 'pages/index/index',
 					},
@@ -387,6 +402,7 @@ export const sendKfMsgDescription: INodeProperties[] = [
 						displayName: '菜单文案',
 						name: 'content',
 						type: 'string',
+						required: true,
 						default: '',
 						description: '菜单项显示的文字',
 						placeholder: '选项1',
@@ -411,6 +427,11 @@ export const sendKfMsgDescription: INodeProperties[] = [
 								value: 'miniprogram',
 								description: '点击后打开小程序',
 							},
+							{
+								name: '文本',
+								value: 'text',
+								description: '纯文本项，可与其他菜单类型混排',
+							},
 						],
 						default: 'click',
 						description: '菜单项的类型',
@@ -420,8 +441,25 @@ export const sendKfMsgDescription: INodeProperties[] = [
 						name: 'url',
 						type: 'string',
 						default: '',
+						displayOptions: {
+							show: {
+								type: ['view'],
+							},
+						},
 						description: '点击后跳转的URL',
 						placeholder: 'https://example.com',
+					},
+					{
+						displayName: '内容后不换行',
+						name: 'no_newline',
+						type: 'boolean',
+						default: false,
+						displayOptions: {
+							show: {
+								type: ['text'],
+							},
+						},
+						description: '仅文本菜单项可用，开启后对应 no_newline=1',
 					},
 			],
 			},

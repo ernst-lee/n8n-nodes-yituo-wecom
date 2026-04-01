@@ -13,6 +13,81 @@ function dateTimeToUnixTimestamp(dateTime: string | number): number {
 	return Math.floor(new Date(dateTime).getTime() / 1000);
 }
 
+function buildMsgMenuMessage(
+	menuItems: IDataObject[],
+	head_content: string,
+	tail_content: string,
+): IDataObject {
+	const list = menuItems.map((item: IDataObject) => {
+		const type = String(item.type || '');
+		const content = String(item.content || '');
+
+		if (type === 'click') {
+			return {
+				type,
+				click: {
+					id: String(item.reply_content || ''),
+					content,
+				},
+			};
+		}
+
+		if (type === 'view') {
+			return {
+				type,
+				view: {
+					url: String(item.url || ''),
+					content,
+				},
+			};
+		}
+
+		if (type === 'miniprogram') {
+			return {
+				type,
+				miniprogram: {
+					appid: String(item.appid || ''),
+					pagepath: String(item.pagepath || ''),
+					content,
+				},
+			};
+		}
+
+		if (type === 'text') {
+			const text: IDataObject = {
+				content,
+			};
+
+			if (item.no_newline !== undefined) {
+				text.no_newline = item.no_newline ? 1 : 0;
+			}
+
+			return {
+				type,
+				text,
+			};
+		}
+
+		return {
+			type,
+		};
+	});
+
+	const messageContent: IDataObject = {
+		list,
+	};
+
+	if (head_content) {
+		messageContent.head_content = head_content;
+	}
+
+	if (tail_content) {
+		messageContent.tail_content = tail_content;
+	}
+
+	return messageContent;
+}
+
 export async function executeKf(
 	this: IExecuteFunctions,
 	operation: string,
@@ -187,27 +262,7 @@ export async function executeKf(
 					const head_content = this.getNodeParameter('msgmenu_head_content', i) as string;
 					const tail_content = this.getNodeParameter('msgmenu_tail_content', i, '') as string;
 					const menuItems = this.getNodeParameter('msgmenu_list.items', i, []) as IDataObject[];
-
-					const list = menuItems.map((item: IDataObject) => {
-						const menuItem: IDataObject = {
-							type: item.type,
-							content: item.content,
-						};
-
-						if (item.type === 'click') {
-							menuItem.id = item.reply_content || '';
-						} else if (item.type === 'view') {
-							menuItem.url = item.url || '';
-						} else if (item.type === 'miniprogram') {
-							menuItem.appid = item.appid || '';
-							menuItem.pagepath = item.pagepath || '';
-						}
-
-						return menuItem;
-					});
-
-					messageContent = { head_content, list };
-					if (tail_content) messageContent.tail_content = tail_content;
+					messageContent = buildMsgMenuMessage(menuItems, head_content, tail_content);
 				} else if (msgtype === 'location') {
 					const name = this.getNodeParameter('location_name', i) as string;
 					const address = this.getNodeParameter('location_address', i) as string;
@@ -243,27 +298,7 @@ export async function executeKf(
 					const head_content = this.getNodeParameter('msgmenu_head_content', i) as string;
 					const tail_content = this.getNodeParameter('msgmenu_tail_content', i, '') as string;
 					const menuItems = this.getNodeParameter('msgmenu_list.items', i, []) as IDataObject[];
-
-					const list = menuItems.map((item: IDataObject) => {
-						const menuItem: IDataObject = {
-							type: item.type,
-							content: item.content,
-						};
-
-						if (item.type === 'click') {
-							menuItem.id = item.reply_content || '';
-						} else if (item.type === 'view') {
-							menuItem.url = item.url || '';
-						} else if (item.type === 'miniprogram') {
-							menuItem.appid = item.appid || '';
-							menuItem.pagepath = item.pagepath || '';
-						}
-
-						return menuItem;
-					});
-
-					messageContent = { head_content, list };
-					if (tail_content) messageContent.tail_content = tail_content;
+					messageContent = buildMsgMenuMessage(menuItems, head_content, tail_content);
 				} else {
 					throw new NodeOperationError(
 						this.getNode(),
