@@ -1465,17 +1465,75 @@ export async function executeWedoc(
 							};
 
 							if (
-								!['OPERATOR_IS_EMPTY', 'OPERATOR_IS_NOT_EMPTY'].includes(condition.operator) &&
-								condition.value
+								['OPERATOR_IS_EMPTY', 'OPERATOR_IS_NOT_EMPTY'].includes(condition.operator)
 							) {
-								const values = condition.value
-									.split(',')
-									.map((v) => v.trim())
-									.filter((v) => v);
+								return apiCondition;
+							}
 
-								if (condition.field_type === 'FIELD_TYPE_NUMBER') {
-									apiCondition.number_value = { value: values.map((v) => parseFloat(v)) };
-								} else {
+							const fieldType = condition.field_type;
+
+							// 日期时间类型
+							if (
+								[
+									'FIELD_TYPE_DATE_TIME',
+									'FIELD_TYPE_CREATED_TIME',
+									'FIELD_TYPE_MODIFIED_TIME',
+								].includes(fieldType)
+							) {
+								const dateTimeType =
+									(condition as IDataObject).date_time_type as string ||
+									'DATE_TIME_TYPE_DETAIL_DATE';
+								const dateTimeValue: IDataObject = { type: dateTimeType };
+								if (
+									dateTimeType === 'DATE_TIME_TYPE_DETAIL_DATE' &&
+									(condition as IDataObject).date_value
+								) {
+									dateTimeValue.value = [
+										String((condition as IDataObject).date_value),
+									];
+								}
+								apiCondition.date_time_value = dateTimeValue;
+							}
+							// 复选框类型
+							else if (fieldType === 'FIELD_TYPE_CHECKBOX') {
+								apiCondition.bool_value = {
+									value: (condition as IDataObject).bool_value === 'true',
+								};
+							}
+							// 数字、进度类型
+							else if (
+								fieldType === 'FIELD_TYPE_NUMBER' ||
+								fieldType === 'FIELD_TYPE_PROGRESS'
+							) {
+								if (condition.value) {
+									apiCondition.number_value = {
+										value: parseFloat(condition.value),
+									};
+								}
+							}
+							// 人员类型
+							else if (
+								[
+									'FIELD_TYPE_USER',
+									'FIELD_TYPE_CREATED_USER',
+									'FIELD_TYPE_MODIFIED_USER',
+								].includes(fieldType)
+							) {
+								if (condition.value) {
+									const values = condition.value
+										.split(',')
+										.map((v) => v.trim())
+										.filter((v) => v);
+									apiCondition.user_value = { value: values };
+								}
+							}
+							// 文本、网址、电话、邮箱、地理位置、单选、多选等
+							else {
+								if (condition.value) {
+									const values = condition.value
+										.split(',')
+										.map((v) => v.trim())
+										.filter((v) => v);
 									apiCondition.string_value = { value: values };
 								}
 							}
