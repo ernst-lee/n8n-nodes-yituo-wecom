@@ -549,7 +549,7 @@ export const updateTemplateCardDescription: INodeProperties[] = [
 		],
 	},
 	{
-		displayName: '整体卡片点击跳转（可选）',
+		displayName: '整体卡片点击跳转',
 		name: 'card_action',
 		type: 'fixedCollection',
 		default: {},
@@ -560,7 +560,8 @@ export const updateTemplateCardDescription: INodeProperties[] = [
 				template_card_input_mode: ['form'],
 			},
 		},
-		description: '整体卡片的点击跳转事件（text_notice必填，news_notice不需要）',
+		description:
+			'整体卡片的点击跳转事件。更新为 text_notice 或 news_notice 时必须填写本字段；button_interaction 时可选。',
 		options: [
 			{
 				name: 'actionInfo',
@@ -631,21 +632,6 @@ export const updateTemplateCardDescription: INodeProperties[] = [
 		],
 	},
 	{
-		displayName: '任务ID（可选）',
-		name: 'task_id',
-		type: 'string',
-		default: '',
-		placeholder: 'task_001',
-		displayOptions: {
-			show: {
-				...showOnlyUpdateTemplateCard,
-				template_card_input_mode: ['form'],
-			},
-		},
-		description:
-			'任务 ID，同一个应用任务 ID 不能重复，只能由数字、字母和"_-@"组成，最长128字节。<a href="https://developer.work.weixin.qq.com/document/path/94888" target="_blank">官方文档</a>',
-	},
-	{
 		displayName: '是否开启ID转译（可选）',
 		name: 'enable_id_trans',
 		type: 'boolean',
@@ -672,6 +658,21 @@ export const updateTemplateCardDescription: INodeProperties[] = [
 			},
 		},
 		description: '按钮替换文案，填写本字段后会展现灰色不可点击按钮。<a href="https://developer.work.weixin.qq.com/document/path/94888" target="_blank">官方文档</a>',
+	},
+	{
+		displayName: '仅更新按钮为不可点击状态',
+		name: 'button_update_only',
+		type: 'boolean',
+		default: false,
+		displayOptions: {
+			show: {
+				...showOnlyUpdateTemplateCard,
+				template_card_input_mode: ['form'],
+				card_type: ['button_interaction', 'vote_interaction', 'multiple_interaction'],
+			},
+		},
+		description:
+			'开启后将按官方简单更新模式发送，只提交 button.replace_name，并使用上方按钮替换文案作为禁用后的按钮文案。',
 	},
 	{
 		displayName: '下拉式选择器（可选）',
@@ -1361,20 +1362,5 @@ export const updateTemplateCardDescription: INodeProperties[] = [
 				],
 			},
 		],
-	},
-	{
-		displayName: '更新卡片所需要消费的按钮Key值（可选）',
-		name: 'button_key',
-		type: 'string',
-		default: '',
-		placeholder: 'btn_001',
-		displayOptions: {
-			show: {
-				...showOnlyUpdateTemplateCard,
-				template_card_input_mode: ['form'],
-			},
-		},
-		description:
-			'仅用于任务卡片消息的升级场景，如果需要更新任务卡片消息时需要填写。<a href="https://developer.work.weixin.qq.com/document/path/94888" target="_blank">官方文档</a>',
 	},
 ];

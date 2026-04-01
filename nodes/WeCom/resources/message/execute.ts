@@ -864,9 +864,13 @@ export async function executeMessage(
 					)
 					: undefined;
 				const card_type = this.getNodeParameter('card_type', i) as string;
-				const button_key = this.getNodeParameter('button_key', i, '') as string;
 				const enable_id_trans = this.getNodeParameter('enable_id_trans', i, false) as boolean;
 				const replace_text = this.getNodeParameter('replace_text', i, '') as string;
+				const button_update_only = this.getNodeParameter(
+					'button_update_only',
+					i,
+					false,
+				) as boolean;
 
 				// 获取接收人信息
 				const recipientType = this.getNodeParameter('recipientType', i) as string;
@@ -897,7 +901,6 @@ export async function executeMessage(
 				const horizontalContentListData = this.getNodeParameter('horizontal_content_list', i, {}) as IDataObject;
 				const jumpListData = this.getNodeParameter('jump_list', i, {}) as IDataObject;
 				const cardActionData = this.getNodeParameter('card_action', i, {}) as IDataObject;
-				const task_id = this.getNodeParameter('task_id', i, '') as string;
 				const actionMenuData = this.getNodeParameter('action_menu', i, {}) as IDataObject;
 
 				let template_card: IDataObject;
@@ -963,11 +966,6 @@ export async function executeMessage(
 					// 添加card_action
 					if (cardActionData.actionInfo) {
 						template_card.card_action = cardActionData.actionInfo;
-					}
-
-					// 添加task_id
-					if (task_id) {
-						template_card.task_id = task_id;
 					}
 
 					// 针对不同卡片类型的特殊处理
@@ -1106,6 +1104,21 @@ export async function executeMessage(
 					}
 				}
 
+				delete template_card.task_id;
+
+				const effectiveCardType = String(template_card.card_type || card_type || '');
+				if (
+					!button_update_only &&
+					['text_notice', 'news_notice'].includes(effectiveCardType) &&
+					!template_card.card_action
+				) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'更新 text_notice 或 news_notice 卡片时，card_action 为必填字段',
+						{ itemIndex: i },
+					);
+				}
+
 				// 构建更新请求body
 				body = {
 					...body,
@@ -1129,10 +1142,17 @@ export async function executeMessage(
 					}
 				}
 
-				// 如果有button_key，使用简单更新模式
-				if (button_key) {
+				// 简单更新按钮：仅提交 button.replace_name
+				if (button_update_only) {
+					if (!replace_text) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'仅更新按钮为不可点击状态时，必须填写按钮替换文案',
+							{ itemIndex: i },
+						);
+					}
 					body.button = {
-						replace_name: replace_text || button_key,
+						replace_name: replace_text,
 					};
 				} else {
 					// 否则使用完整卡片更新
