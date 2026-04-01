@@ -741,6 +741,51 @@ export async function executeWedoc(
 	items: INodeExecutionData[],
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
+	const parseRequiredJsonObject = (
+		value: unknown,
+		parameterName: string,
+		itemIndex: number,
+	): IDataObject => {
+		if (value === undefined || value === null) {
+			throw new NodeOperationError(this.getNode(), `${parameterName} 不能为空`, { itemIndex });
+		}
+
+		if (typeof value === 'string') {
+			const trimmed = value.trim();
+			if (!trimmed) {
+				throw new NodeOperationError(this.getNode(), `${parameterName} 不能为空`, {
+					itemIndex,
+				});
+			}
+
+			try {
+				const parsed = JSON.parse(trimmed) as unknown;
+				if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+					throw new NodeOperationError(this.getNode(), `${parameterName} 必须是 JSON 对象`, {
+						itemIndex,
+					});
+				}
+				return parsed as IDataObject;
+			} catch (error) {
+				if (error instanceof NodeOperationError) {
+					throw error;
+				}
+				throw new NodeOperationError(
+					this.getNode(),
+					`${parameterName} 必须是有效的 JSON: ${(error as Error).message}`,
+					{ itemIndex },
+				);
+			}
+		}
+
+		if (Array.isArray(value) || typeof value !== 'object') {
+			throw new NodeOperationError(this.getNode(), `${parameterName} 必须是 JSON 对象`, {
+				itemIndex,
+			});
+		}
+
+		return value as IDataObject;
+	};
 
 	for (let i = 0; i < items.length; i++)
 		try {
@@ -1325,6 +1370,64 @@ export async function executeWedoc(
 						records,
 					},
 				);
+			} else if (operation === 'sendSmartsheetWebhook') {
+				const itemJson = items[i].json as IDataObject;
+				const webhookUrl =
+					(itemJson.webhook_url as string | undefined) ||
+					(itemJson.webhookUrl as string | undefined) ||
+					(itemJson.url as string | undefined) ||
+					'';
+				const payload = parseRequiredJsonObject(
+					this.getNodeParameter('payload_json', i, '{}'),
+					'payload_json',
+					i,
+				);
+
+				delete payload.webhook_url;
+				delete payload.webhookUrl;
+				delete payload.url;
+
+				if (!webhookUrl) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'输入数据中缺少 Webhook 地址，请提供 webhook_url、webhookUrl 或 url 字段',
+						{ itemIndex: i },
+					);
+				}
+
+				if (!webhookUrl.includes('/cgi-bin/wedoc/smartsheet/webhook')) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'Webhook 地址格式无效，请使用智能表格“接收外部数据”生成的 Webhook 地址',
+						{ itemIndex: i },
+					);
+				}
+
+				if (!Array.isArray(payload.add_records) && !Array.isArray(payload.update_records)) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'payload_json 至少需要包含 add_records 或 update_records 数组',
+						{ itemIndex: i },
+					);
+				}
+
+				response = (await this.helpers.httpRequest({
+					method: 'POST',
+					url: webhookUrl,
+					body: payload,
+					json: true,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				})) as IDataObject;
+
+				if (response.errcode !== undefined && response.errcode !== 0) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`智能表格 Webhook 请求失败: ${String(response.errmsg || '')} (错误码: ${String(response.errcode)})`,
+						{ itemIndex: i },
+					);
+				}
 			}
 			// 获取文档数据
 			else if (operation === 'getDocData') {
@@ -1637,24 +1740,92 @@ export async function executeWedoc(
 				response = await weComApiRequest.call(this, 'POST', '/cgi-bin/wedoc/mod_doc_member', body);
 			} else if (operation === 'modDocShareScope') {
 				const docid = this.getNodeParameter('docid', i) as string;
-				const coAuthCollection = this.getNodeParameter('coAuthCollection', i, {}) as IDataObject;
-				const enable_readonly_copy = this.getNodeParameter(
-					'enable_readonly_copy',
+				const body: IDataObject = { docid };
+				const updateInternalJoinRule = this.getNodeParameter(
+					'updateInternalJoinRule',
 					i,
-					true,
+					false,
 				) as boolean;
-				const ban_share_external = this.getNodeParameter('ban_share_external', i, false) as boolean;
-				const share_scope = this.getNodeParameter('share_scope', i, 1) as number;
+				const updateExternalJoinRule = this.getNodeParameter(
+					'updateExternalJoinRule',
+					i,
+					false,
+				) as boolean;
+				const updateBanShareExternal = this.getNodeParameter(
+					'updateBanShareExternal',
+					i,
+					false,
+				) as boolean;
+				const updateCoAuthList = this.getNodeParameter('update_co_auth_list', i, false) as boolean;
 
-				const body: IDataObject = {
-					docid,
-					enable_readonly_copy,
-					ban_share_external,
-					share_scope,
-				};
+				if (updateInternalJoinRule) {
+					body.enable_corp_internal = this.getNodeParameter(
+						'enable_corp_internal',
+						i,
+						true,
+					) as boolean;
+					body.corp_internal_auth = this.getNodeParameter('corp_internal_auth', i, 2) as number;
+					body.corp_internal_approve_only_by_admin = this.getNodeParameter(
+						'corp_internal_approve_only_by_admin',
+						i,
+						false,
+					) as boolean;
+				}
 
-				if (coAuthCollection.members && Array.isArray(coAuthCollection.members)) {
-					body.co_auth_list = (coAuthCollection.members as IDataObject[]).map(buildMemberInfo);
+				if (updateExternalJoinRule) {
+					body.enable_corp_external = this.getNodeParameter(
+						'enable_corp_external',
+						i,
+						false,
+					) as boolean;
+					body.corp_external_auth = this.getNodeParameter('corp_external_auth', i, 1) as number;
+					body.corp_external_approve_only_by_admin = this.getNodeParameter(
+						'corp_external_approve_only_by_admin',
+						i,
+						true,
+					) as boolean;
+				}
+
+				if (updateBanShareExternal) {
+					body.ban_share_external = this.getNodeParameter(
+						'ban_share_external',
+						i,
+						false,
+					) as boolean;
+				}
+
+				if (updateCoAuthList) {
+					const coAuthCollection = this.getNodeParameter('coAuthCollection', i, {}) as IDataObject;
+					const rawDepartments = Array.isArray(coAuthCollection.departments)
+						? (coAuthCollection.departments as IDataObject[])
+						: Array.isArray(coAuthCollection.members)
+							? (coAuthCollection.members as IDataObject[])
+							: [];
+
+					body.update_co_auth_list = true;
+					body.co_auth_list = rawDepartments.map((department) => {
+						const type = department.type ?? 2;
+
+						if (type !== 2) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'修改文档加入规则的特定权限列表目前只支持部门类型',
+								{ itemIndex: i },
+							);
+						}
+
+						return {
+							departmentid: department.departmentid,
+							auth: department.auth,
+							type: 2,
+						};
+					});
+				}
+
+				if (Object.keys(body).length === 1) {
+					throw new NodeOperationError(this.getNode(), '请至少开启一项要更新的加入规则设置', {
+						itemIndex: i,
+					});
 				}
 
 				response = await weComApiRequest.call(

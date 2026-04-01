@@ -24,6 +24,7 @@ import { updateSmartsheetFieldDescription } from './updateSmartsheetField';
 import { addSmartsheetRecordDescription } from './addSmartsheetRecord';
 import { delSmartsheetRecordDescription } from './delSmartsheetRecord';
 import { updateSmartsheetRecordDescription } from './updateSmartsheetRecord';
+import { sendSmartsheetWebhookDescription } from './sendSmartsheetWebhook';
 
 // 获取文档数据
 import { getDocDataDescription } from './getDocData';
@@ -210,6 +211,12 @@ export const wedocDescription: INodeProperties[] = [
 				action: '[智能表格] 更新记录',
 				description: '更新子表的记录',
 			},
+			{
+				name: '[智能表格] Webhook 写入数据',
+				value: 'sendSmartsheetWebhook',
+				action: '[智能表格] Webhook 写入数据',
+				description: '通过智能表格“接收外部数据”生成的 Webhook 地址新增或更新记录',
+			},
 			// 获取智能表格数据
 			{
 				name: '[获取智能表格数据] 查询子表',
@@ -267,10 +274,10 @@ export const wedocDescription: INodeProperties[] = [
 				description: '修改文档的成员权限规则',
 			},
 			{
-				name: '[权限设置] 修改文档查看规则',
+				name: '[权限设置] 修改文档加入规则',
 				value: 'modDocShareScope',
-				action: '[权限设置] 修改文档查看规则',
-				description: '修改文档的查看范围规则',
+				action: '[权限设置] 修改文档加入规则',
+				description: '修改文档、表格、智能表格的加入规则',
 			},
 			{
 				name: '[权限设置] 修改文档安全设置',
@@ -363,6 +370,7 @@ export const wedocDescription: INodeProperties[] = [
 	...addSmartsheetRecordDescription,
 	...delSmartsheetRecordDescription,
 	...updateSmartsheetRecordDescription,
+	...sendSmartsheetWebhookDescription,
 	...getDocDataDescription,
 	...getSheetRangeDescription,
 	...getSheetDataDescription,

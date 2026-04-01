@@ -49,6 +49,58 @@ export async function executeAppChat(
 		}
 		return undefined;
 	};
+	const parseCommaSeparatedList = (value: string): string[] => {
+		if (!value.trim()) {
+			return [];
+		}
+
+		return value
+			.split(',')
+			.map((item) => item.trim())
+			.filter((item) => item);
+	};
+	const normalizeMentionedUsers = (value: unknown): string[] => {
+		if (Array.isArray(value)) {
+			return value
+				.map((item) => String(item).trim())
+				.filter((item) => item);
+		}
+
+		if (typeof value === 'string') {
+			const trimmed = value.trim();
+			if (!trimmed) {
+				return [];
+			}
+
+			if (trimmed.startsWith('[')) {
+				try {
+					const parsed = JSON.parse(trimmed) as unknown;
+					if (Array.isArray(parsed)) {
+						return parsed
+							.map((item) => String(item).trim())
+							.filter((item) => item);
+					}
+				} catch (error) {
+					void error;
+				}
+			}
+
+			if (trimmed.includes(',')) {
+				return parseCommaSeparatedList(trimmed);
+			}
+
+			if (trimmed.includes('|')) {
+				return trimmed
+					.split('|')
+					.map((item) => item.trim())
+					.filter((item) => item);
+			}
+
+			return [trimmed];
+		}
+
+		return [];
+	};
 
 	for (let i = 0; i < items.length; i++) {
 		try {
@@ -162,13 +214,22 @@ export async function executeAppChat(
 				if (operation === 'sendText') {
 					const content = this.getNodeParameter('content', i) as string;
 					const safe = this.getNodeParameter('safe', i, false) as boolean;
+					const mentionedList = this.getNodeParameter('mentionedList', i, []) as
+						| string
+						| string[];
+					const text: IDataObject = {
+						content,
+					};
+					const mentionedUsers = normalizeMentionedUsers(mentionedList);
+
+					if (mentionedUsers.length > 0) {
+						text.mentioned_list = mentionedUsers;
+					}
 
 					body = {
 						...body,
 						msgtype: 'text',
-						text: {
-							content,
-						},
+						text,
 						safe: safe ? 1 : 0,
 					};
 				} else if (operation === 'sendImage') {

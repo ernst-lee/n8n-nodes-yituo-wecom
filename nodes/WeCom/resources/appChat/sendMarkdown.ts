@@ -7,7 +7,7 @@ const showOnlyForSendMarkdown = {
 
 export const sendMarkdownDescription: INodeProperties[] = [
 	{
-		displayName: '群聊ID',
+		displayName: '群聊 ID',
 		name: 'chatid',
 		type: 'string',
 		displayOptions: {
@@ -17,7 +17,7 @@ export const sendMarkdownDescription: INodeProperties[] = [
 		placeholder: 'mychat001',
 		required: true,
 		description:
-			'群聊的唯一标识。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+			'群聊会话的唯一标识。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
 	},
 	{
 		displayName: '消息内容',
@@ -33,6 +33,6 @@ export const sendMarkdownDescription: INodeProperties[] = [
 		placeholder: '# 标题\n\n**加粗** *斜体*',
 		required: true,
 		description:
-			'Markdown 格式的消息内容。最长不超过2048个字节，必须是utf8编码。目前仅支持markdown语法的子集。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
+			'Markdown 格式的消息内容，最长不超过 2048 字节，必须为 UTF-8 编码。目前仅支持 Markdown 子集。<a href="https://developer.work.weixin.qq.com/document/path/90248" target="_blank">官方文档</a>',
 	},
 ];

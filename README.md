@@ -321,7 +321,7 @@ npm install n8n-nodes-wecom
 - ✅ [获取群聊会话信息](https://developer.work.weixin.qq.com/document/path/98914)
 - ✅ [修改群聊会话](https://developer.work.weixin.qq.com/document/path/98913)
 - ✅ [发送消息到群聊](https://developer.work.weixin.qq.com/document/path/90248)
-  - 发送文本消息到群聊
+  - 发送文本消息到群聊（支持 `@群成员` / `@所有人`）
   - 发送图片消息到群聊
   - 发送文件消息到群聊
   - 发送 Markdown 消息到群聊
@@ -625,6 +625,7 @@ npm install n8n-nodes-wecom
 - ✅ [添加记录](https://developer.work.weixin.qq.com/document/path/99907)
 - ✅ [删除记录](https://developer.work.weixin.qq.com/document/path/99908)
 - ✅ [更新记录](https://developer.work.weixin.qq.com/document/path/99909)
+- ✅ [接收外部数据到智能表格](https://developer.work.weixin.qq.com/document/path/101239/)
 
 #### 获取文档数据
 
@@ -642,7 +643,7 @@ npm install n8n-nodes-wecom
 #### 设置文档权限
 
 - ✅ [获取文档权限信息](https://developer.work.weixin.qq.com/document/path/97461)
-- ✅ [修改文档查看规则](https://developer.work.weixin.qq.com/document/path/97778)
+- ✅ [修改文档加入规则](https://developer.work.weixin.qq.com/document/path/97778)
 - ✅ [修改文档通知范围及权限](https://developer.work.weixin.qq.com/document/path/97781)
 - ✅ [修改文档安全设置](https://developer.work.weixin.qq.com/document/path/97782)
 - ✅ [管理智能表格内容权限](https://developer.work.weixin.qq.com/document/path/99935)
