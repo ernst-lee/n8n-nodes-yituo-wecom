@@ -274,10 +274,10 @@ export const wedocDescription: INodeProperties[] = [
 				description: '修改文档的成员权限规则',
 			},
 			{
-				name: '[权限设置] 修改文档查看规则',
+				name: '[权限设置] 修改文档加入规则',
 				value: 'modDocShareScope',
-				action: '[权限设置] 修改文档查看规则',
-				description: '修改文档的查看范围规则',
+				action: '[权限设置] 修改文档加入规则',
+				description: '修改文档、表格、智能表格的加入规则',
 			},
 			{
 				name: '[权限设置] 修改文档安全设置',

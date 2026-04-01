@@ -643,7 +643,7 @@ npm install n8n-nodes-wecom
 #### 设置文档权限
 
 - ✅ [获取文档权限信息](https://developer.work.weixin.qq.com/document/path/97461)
-- ✅ [修改文档查看规则](https://developer.work.weixin.qq.com/document/path/97778)
+- ✅ [修改文档加入规则](https://developer.work.weixin.qq.com/document/path/97778)
 - ✅ [修改文档通知范围及权限](https://developer.work.weixin.qq.com/document/path/97781)
 - ✅ [修改文档安全设置](https://developer.work.weixin.qq.com/document/path/97782)
 - ✅ [管理智能表格内容权限](https://developer.work.weixin.qq.com/document/path/99935)

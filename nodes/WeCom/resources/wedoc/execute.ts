@@ -761,11 +761,9 @@ export async function executeWedoc(
 			try {
 				const parsed = JSON.parse(trimmed) as unknown;
 				if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-					throw new NodeOperationError(
-						this.getNode(),
-						`${parameterName} 必须是 JSON 对象`,
-						{ itemIndex },
-					);
+					throw new NodeOperationError(this.getNode(), `${parameterName} 必须是 JSON 对象`, {
+						itemIndex,
+					});
 				}
 				return parsed as IDataObject;
 			} catch (error) {
@@ -1742,24 +1740,92 @@ export async function executeWedoc(
 				response = await weComApiRequest.call(this, 'POST', '/cgi-bin/wedoc/mod_doc_member', body);
 			} else if (operation === 'modDocShareScope') {
 				const docid = this.getNodeParameter('docid', i) as string;
-				const coAuthCollection = this.getNodeParameter('coAuthCollection', i, {}) as IDataObject;
-				const enable_readonly_copy = this.getNodeParameter(
-					'enable_readonly_copy',
+				const body: IDataObject = { docid };
+				const updateInternalJoinRule = this.getNodeParameter(
+					'updateInternalJoinRule',
 					i,
-					true,
+					false,
 				) as boolean;
-				const ban_share_external = this.getNodeParameter('ban_share_external', i, false) as boolean;
-				const share_scope = this.getNodeParameter('share_scope', i, 1) as number;
+				const updateExternalJoinRule = this.getNodeParameter(
+					'updateExternalJoinRule',
+					i,
+					false,
+				) as boolean;
+				const updateBanShareExternal = this.getNodeParameter(
+					'updateBanShareExternal',
+					i,
+					false,
+				) as boolean;
+				const updateCoAuthList = this.getNodeParameter('update_co_auth_list', i, false) as boolean;
 
-				const body: IDataObject = {
-					docid,
-					enable_readonly_copy,
-					ban_share_external,
-					share_scope,
-				};
+				if (updateInternalJoinRule) {
+					body.enable_corp_internal = this.getNodeParameter(
+						'enable_corp_internal',
+						i,
+						true,
+					) as boolean;
+					body.corp_internal_auth = this.getNodeParameter('corp_internal_auth', i, 2) as number;
+					body.corp_internal_approve_only_by_admin = this.getNodeParameter(
+						'corp_internal_approve_only_by_admin',
+						i,
+						false,
+					) as boolean;
+				}
 
-				if (coAuthCollection.members && Array.isArray(coAuthCollection.members)) {
-					body.co_auth_list = (coAuthCollection.members as IDataObject[]).map(buildMemberInfo);
+				if (updateExternalJoinRule) {
+					body.enable_corp_external = this.getNodeParameter(
+						'enable_corp_external',
+						i,
+						false,
+					) as boolean;
+					body.corp_external_auth = this.getNodeParameter('corp_external_auth', i, 1) as number;
+					body.corp_external_approve_only_by_admin = this.getNodeParameter(
+						'corp_external_approve_only_by_admin',
+						i,
+						true,
+					) as boolean;
+				}
+
+				if (updateBanShareExternal) {
+					body.ban_share_external = this.getNodeParameter(
+						'ban_share_external',
+						i,
+						false,
+					) as boolean;
+				}
+
+				if (updateCoAuthList) {
+					const coAuthCollection = this.getNodeParameter('coAuthCollection', i, {}) as IDataObject;
+					const rawDepartments = Array.isArray(coAuthCollection.departments)
+						? (coAuthCollection.departments as IDataObject[])
+						: Array.isArray(coAuthCollection.members)
+							? (coAuthCollection.members as IDataObject[])
+							: [];
+
+					body.update_co_auth_list = true;
+					body.co_auth_list = rawDepartments.map((department) => {
+						const type = department.type ?? 2;
+
+						if (type !== 2) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'修改文档加入规则的特定权限列表目前只支持部门类型',
+								{ itemIndex: i },
+							);
+						}
+
+						return {
+							departmentid: department.departmentid,
+							auth: department.auth,
+							type: 2,
+						};
+					});
+				}
+
+				if (Object.keys(body).length === 1) {
+					throw new NodeOperationError(this.getNode(), '请至少开启一项要更新的加入规则设置', {
+						itemIndex: i,
+					});
 				}
 
 				response = await weComApiRequest.call(
