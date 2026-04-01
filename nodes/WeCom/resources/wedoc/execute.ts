@@ -741,6 +741,53 @@ export async function executeWedoc(
 	items: INodeExecutionData[],
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
+	const parseRequiredJsonObject = (
+		value: unknown,
+		parameterName: string,
+		itemIndex: number,
+	): IDataObject => {
+		if (value === undefined || value === null) {
+			throw new NodeOperationError(this.getNode(), `${parameterName} 不能为空`, { itemIndex });
+		}
+
+		if (typeof value === 'string') {
+			const trimmed = value.trim();
+			if (!trimmed) {
+				throw new NodeOperationError(this.getNode(), `${parameterName} 不能为空`, {
+					itemIndex,
+				});
+			}
+
+			try {
+				const parsed = JSON.parse(trimmed) as unknown;
+				if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+					throw new NodeOperationError(
+						this.getNode(),
+						`${parameterName} 必须是 JSON 对象`,
+						{ itemIndex },
+					);
+				}
+				return parsed as IDataObject;
+			} catch (error) {
+				if (error instanceof NodeOperationError) {
+					throw error;
+				}
+				throw new NodeOperationError(
+					this.getNode(),
+					`${parameterName} 必须是有效的 JSON: ${(error as Error).message}`,
+					{ itemIndex },
+				);
+			}
+		}
+
+		if (Array.isArray(value) || typeof value !== 'object') {
+			throw new NodeOperationError(this.getNode(), `${parameterName} 必须是 JSON 对象`, {
+				itemIndex,
+			});
+		}
+
+		return value as IDataObject;
+	};
 
 	for (let i = 0; i < items.length; i++)
 		try {
@@ -1325,6 +1372,64 @@ export async function executeWedoc(
 						records,
 					},
 				);
+			} else if (operation === 'sendSmartsheetWebhook') {
+				const itemJson = items[i].json as IDataObject;
+				const webhookUrl =
+					(itemJson.webhook_url as string | undefined) ||
+					(itemJson.webhookUrl as string | undefined) ||
+					(itemJson.url as string | undefined) ||
+					'';
+				const payload = parseRequiredJsonObject(
+					this.getNodeParameter('payload_json', i, '{}'),
+					'payload_json',
+					i,
+				);
+
+				delete payload.webhook_url;
+				delete payload.webhookUrl;
+				delete payload.url;
+
+				if (!webhookUrl) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'输入数据中缺少 Webhook 地址，请提供 webhook_url、webhookUrl 或 url 字段',
+						{ itemIndex: i },
+					);
+				}
+
+				if (!webhookUrl.includes('/cgi-bin/wedoc/smartsheet/webhook')) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'Webhook 地址格式无效，请使用智能表格“接收外部数据”生成的 Webhook 地址',
+						{ itemIndex: i },
+					);
+				}
+
+				if (!Array.isArray(payload.add_records) && !Array.isArray(payload.update_records)) {
+					throw new NodeOperationError(
+						this.getNode(),
+						'payload_json 至少需要包含 add_records 或 update_records 数组',
+						{ itemIndex: i },
+					);
+				}
+
+				response = (await this.helpers.httpRequest({
+					method: 'POST',
+					url: webhookUrl,
+					body: payload,
+					json: true,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				})) as IDataObject;
+
+				if (response.errcode !== undefined && response.errcode !== 0) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`智能表格 Webhook 请求失败: ${String(response.errmsg || '')} (错误码: ${String(response.errcode)})`,
+						{ itemIndex: i },
+					);
+				}
 			}
 			// 获取文档数据
 			else if (operation === 'getDocData') {

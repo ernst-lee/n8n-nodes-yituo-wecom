@@ -625,6 +625,7 @@ npm install n8n-nodes-wecom
 - ✅ [添加记录](https://developer.work.weixin.qq.com/document/path/99907)
 - ✅ [删除记录](https://developer.work.weixin.qq.com/document/path/99908)
 - ✅ [更新记录](https://developer.work.weixin.qq.com/document/path/99909)
+- ✅ [接收外部数据到智能表格](https://developer.work.weixin.qq.com/document/path/101239/)
 
 #### 获取文档数据
 
