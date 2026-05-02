@@ -35,34 +35,39 @@ export const passiveReplyDescription: INodeProperties[] = [
 		},
 		options: [
 			{
-				name: '文本消息',
+				name: '消息接收与发送-被动回复-文本消息',
 				value: 'text',
-				description: '回复文本消息',
+				description: '被动回复文本消息（MsgType=text），文本内容最长不超过2048个字节',
 			},
 			{
-				name: '图片消息',
+				name: '消息接收与发送-被动回复-图片消息',
 				value: 'image',
-				description: '回复图片消息',
+				description: '被动回复图片消息（MsgType=image），需提供图片媒体文件 ID',
 			},
 			{
-				name: '语音消息',
+				name: '消息接收与发送-被动回复-语音消息',
 				value: 'voice',
-				description: '回复语音消息',
+				description: '被动回复语音消息（MsgType=voice），需提供语音文件 ID',
 			},
 			{
-				name: '视频消息',
+				name: '消息接收与发送-被动回复-视频消息',
 				value: 'video',
-				description: '回复视频消息',
+				description: '被动回复视频消息（MsgType=video），可设置标题和描述',
 			},
 			{
-				name: '图文消息',
+				name: '消息接收与发送-被动回复-图文消息',
 				value: 'news',
-				description: '回复图文消息',
+				description: '被动回复图文消息（MsgType=news），包含 ArticleCount 和 Articles',
 			},
 			{
-				name: '模板卡片更新消息',
+				name: '消息接收与发送-被动回复-模板卡片按钮文案更新消息',
+				value: 'update_button',
+				description: '更新点击用户的按钮文案（MsgType=update_button）',
+			},
+			{
+				name: '消息接收与发送-被动回复-模板卡片更新消息',
 				value: 'update_template_card',
-				description: '更新模板卡片消息',
+				description: '更新点击用户的整张模板卡片（MsgType=update_template_card）',
 			},
 		],
 		default: 'text',
@@ -957,11 +962,10 @@ export const passiveReplyDescription: INodeProperties[] = [
 			show: {
 				...showOnlyForPassiveReply,
 				operation: ['reply'],
-				replyType: ['update_template_card'],
+				replyType: ['update_button', 'update_template_card'],
 			},
 		},
 		default: '',
-		description: '可选。按钮替换名称，用于简单的按钮状态更新。如果只需要更新按钮状态，可以只填写此字段而不填写完整卡片内容',
+		description: '按钮替换名称。用于更新点击用户的按钮文案，按钮会自动变更为不可点击状态',
 	},
 ];
-

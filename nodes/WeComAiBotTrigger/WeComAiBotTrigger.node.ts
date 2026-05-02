@@ -171,52 +171,77 @@ export class WeComAiBotTrigger implements INodeType {
 					{
 						name: '所有消息和事件',
 						value: '*',
-						description: '接收所有支持的消息类型和事件',
+						description: '接收所有消息和事件',
 					},
 					{
-						name: '文本消息',
+						name: '消息接收与发送-智能机器人-接收消息-文本消息',
 						value: 'text',
-						description: '接收用户发送的文本消息',
+						description: '接收文本消息',
 					},
 					{
-						name: '图片消息',
+						name: '消息接收与发送-智能机器人-接收消息-图片消息',
 						value: 'image',
-						description: '接收用户发送的图片消息（仅单聊）',
+						description: '接收图片消息',
 					},
 					{
-						name: '图文混排消息',
+						name: '消息接收与发送-智能机器人-接收消息-图文混排消息',
 						value: 'mixed',
-						description: '接收用户发送的图文混排消息',
+						description: '接收图文混排消息',
 					},
 					{
-						name: '语音消息',
+						name: '消息接收与发送-智能机器人-接收消息-语音消息',
 						value: 'voice',
-						description: '接收用户发送的语音消息（仅单聊）',
+						description: '接收语音消息',
 					},
 					{
-						name: '文件消息',
+						name: '消息接收与发送-智能机器人-接收消息-文件消息',
 						value: 'file',
-						description: '接收用户发送的文件消息（仅单聊，100M以内）',
+						description: '接收文件消息',
 					},
 					{
-						name: '流式消息刷新',
+						name: '消息接收与发送-智能机器人-接收消息-视频消息',
+						value: 'video',
+						description: '接收视频消息',
+					},
+					{
+						name: '消息接收与发送-智能机器人-接收消息-流式消息刷新',
 						value: 'stream',
-						description: '接收流式消息刷新事件',
+						description: '接收流式消息刷新',
 					},
 					{
-						name: '进入会话事件',
+						name: '消息接收与发送-智能机器人-接收事件-进入会话',
 						value: 'enter_chat',
-						description: '用户当天首次进入智能机器人单聊会话时触发',
+						description: '接收进入会话',
 					},
 					{
-						name: '模板卡片事件',
+						name: '消息接收与发送-智能机器人-接收事件-模板卡片事件',
 						value: 'template_card_event',
-						description: '模板卡片按钮点击、投票选择、多项选择等交互事件',
+						description: '接收模板卡片事件',
 					},
 					{
-						name: '用户反馈事件',
+						name: '消息接收与发送-智能机器人-接收事件-按钮交互模板卡片事件',
+						value: 'template_card_event_button_interaction',
+						description: '接收按钮交互模板卡片事件',
+					},
+					{
+						name: '消息接收与发送-智能机器人-接收事件-投票选择模板卡片事件',
+						value: 'template_card_event_vote_interaction',
+						description: '接收投票选择模板卡片事件',
+					},
+					{
+						name: '消息接收与发送-智能机器人-接收事件-多项选择模板卡片事件',
+						value: 'template_card_event_multiple_interaction',
+						description: '接收多项选择模板卡片事件',
+					},
+					{
+						name: '消息接收与发送-智能机器人-接收事件-模板卡片右上角菜单事件',
+						value: 'template_card_event_menu',
+						description: '接收模板卡片右上角菜单事件',
+					},
+					{
+						name: '消息接收与发送-智能机器人-接收事件-用户反馈',
 						value: 'feedback_event',
-						description: '用户对智能机器人回复进行反馈时触发',
+						description: '接收用户反馈',
 					},
 				],
 				default: ['*'],
@@ -426,9 +451,25 @@ export class WeComAiBotTrigger implements INodeType {
 			// 对于事件类型，需要检查具体的事件类型
 			const eventData = messageData.event as IDataObject;
 			const eventType = (eventData?.eventtype as string) || '';
-			
+			const templateCardEvent = eventData?.template_card_event as IDataObject;
+			const cardType = (templateCardEvent?.card_type as string) || '';
+			const hasSelectedItems = Boolean(templateCardEvent?.selected_items);
+			const specificTemplateCardEvent =
+				eventType === 'template_card_event' && cardType
+					? `template_card_event_${cardType}`
+					: '';
+
 			// 检查是否匹配事件类型
 			if (eventType === 'template_card_event' && events.includes('template_card_event')) {
+				shouldProcess = true;
+			} else if (specificTemplateCardEvent && events.includes(specificTemplateCardEvent)) {
+				shouldProcess = true;
+			} else if (
+				eventType === 'template_card_event' &&
+				['text_notice', 'news_notice', 'button_interaction'].includes(cardType) &&
+				!hasSelectedItems &&
+				events.includes('template_card_event_menu')
+			) {
 				shouldProcess = true;
 			} else if (eventType === 'enter_chat' && events.includes('enter_chat')) {
 				shouldProcess = true;

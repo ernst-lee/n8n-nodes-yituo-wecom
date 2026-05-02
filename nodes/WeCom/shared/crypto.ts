@@ -306,14 +306,14 @@ export function generateXML(data: Record<string, string>): string {
  *
  * @param toUser - 接收方 UserID（通常是发送消息的成员UserID）
  * @param fromUser - 发送方（通常是企业应用的 CorpID）
- * @param msgType - 消息类型（text/image/voice/video/news/update_template_card）
+ * @param msgType - 消息类型（text/image/voice/video/news/update_button/update_template_card）
  * @param content - 消息内容（根据不同类型格式不同）
  * @returns 被动回复消息的 XML 字符串
  */
 export function generateReplyMessageXML(
 	toUser: string,
 	fromUser: string,
-	msgType: 'text' | 'image' | 'voice' | 'video' | 'news' | 'update_template_card',
+	msgType: 'text' | 'image' | 'voice' | 'video' | 'news' | 'update_button' | 'update_template_card',
 	content: Record<string, unknown>,
 ): string {
 	const createTime = Math.floor(Date.now() / 1000);
@@ -372,13 +372,17 @@ export function generateReplyMessageXML(
 			xml += '</Articles>';
 			break;
 		}
-		case 'update_template_card':
+		case 'update_button': {
 			if (content.Button) {
 				xml += '<Button>';
 				const button = content.Button as Record<string, unknown>;
 				xml += `<ReplaceName><![CDATA[${button.ReplaceName as string}]]></ReplaceName>`;
 				xml += '</Button>';
-			} else if (content.TemplateCard) {
+			}
+			break;
+		}
+		case 'update_template_card':
+			if (content.TemplateCard) {
 				const card = content.TemplateCard as Record<string, unknown>;
 				xml += '<TemplateCard>';
 				xml += `<CardType><![CDATA[${card.CardType as string}]]></CardType>`;
