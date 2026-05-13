@@ -1,9 +1,9 @@
 {
-	"name": "n8n-nodes-wecom",
-	"version": "0.4.10",
+	"name": "@ernst-lee/n8n-nodes-wecom",
+	"version": "0.1.1",
 	"description": "Complete n8n integration for WeCom (企业微信/WeChat Work). Send messages, manage contacts, departments, customer relations, meetings, documents, email, calendar, approvals, and more. Full-featured enterprise WeChat automation node.",
 	"license": "MIT",
-	"homepage": "https://github.com/funcodingdev/n8n-nodes-wecom",
+	"homepage": "https://github.com/ernst-lee/n8n-nodes-wecom",
 	"keywords": [
 		"n8n-community-node-package",
 		"wecom",
@@ -26,12 +26,12 @@
 		"trigger"
 	],
 	"author": {
-		"name": "funcodingdev",
-		"email": "funcodingdev@foxmail.com"
+		"name": "ernst-lee",
+		"email": "1114100456@qq.com"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/funcodingdev/n8n-nodes-wecom.git"
+		"url": "https://github.com/ernst-lee/n8n-nodes-wecom.git"
 	},
 	"scripts": {
 		"build": "n8n-node build",
